@@ -1,4 +1,5 @@
 require "./player.rb"
+require "./dice.rb"
 
 module Game
   class Game
@@ -12,6 +13,7 @@ module Game
         retry
       end
       @players = []
+      @dice_obj = Dice::DiceSet.new turns
       @player_count.times do |count|
         @players << Player::Player.new(count + 1, turns)
       end
@@ -24,9 +26,9 @@ module Game
         puts "Turn #{turn}:"
         puts "--------"
         @players.each do |player|
-          player.reset_score_and_take_turn
+          player.reset_score_and_take_turn @dice_obj
           player.accumulated_score += player.turn_score if player.game_started
-          player.dice_obj.current_turn = player.dice_obj.max_turns
+          @dice_obj.current_turn = @dice_obj.max_turns
           puts ""
         end
         if last_round
