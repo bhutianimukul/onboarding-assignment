@@ -57,7 +57,7 @@ RSpec.describe Player::Player do
     describe "#play_again?" do
       context "when user inputs 'y'" do
         before do
-          allow(player).to receive(:gets).and_return("y\n") # Simulate user input for 'yes'
+          allow(player).to receive(:gets).and_return("y\n") # mock user input for 'yes'
         end
 
         it "returns true" do
@@ -67,7 +67,7 @@ RSpec.describe Player::Player do
 
       context "when user inputs 'n'" do
         before do
-          allow(player).to receive(:gets).and_return("n\n") # Simulate user input for 'no'
+          allow(player).to receive(:gets).and_return("n\n") # mock user input for 'no'
         end
 
         it "returns false" do
@@ -82,7 +82,7 @@ RSpec.describe Player::Player do
 
         it "prompts again until valid input is received" do
           expect { player.play_again?(dice_obj) }.to output(/Please enter only y\/n/).to_stdout
-          expect(player.play_again?(dice_obj)).to be true # Since the second input is 'y'
+          expect(player.play_again?(dice_obj)).to be true #  as the second input is 'y'
         end
       end
     end

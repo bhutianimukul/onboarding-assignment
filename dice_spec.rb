@@ -31,6 +31,7 @@ RSpec.describe Dice::DiceSet do
       expect(dice.values).to all(be_between(1, 6).inclusive)
     end
   end
+
   describe "#score" do
     it "empty values" do
       expect(dice.score([])).to eq(0)
@@ -57,17 +58,17 @@ RSpec.describe Dice::DiceSet do
         dice.compute_possible_rolls
         expect(dice.current_throw).to eq(4)
 
-        # Example where all dice are scoring (three 1's and two 5's)
+        # where all dice are scoring (three 1's and two 5's)
         dice.instance_variable_set(:@values, [1, 1, 1, 5, 5])
         dice.compute_possible_rolls
         expect(dice.current_throw).to eq(5)
 
-        # Example where triplets are scoring
+        # where triplets are scoring
         dice.instance_variable_set(:@values, [2, 2, 2, 6, 6])
         dice.compute_possible_rolls
         expect(dice.current_throw).to eq(2)
 
-        # Example where all are non scoring
+        # all dices are non scoring
         dice.instance_variable_set(:@values, [2, 2, 3, 6, 6])
         dice.compute_possible_rolls
         expect(dice.current_throw).to eq(dice.max_throws)

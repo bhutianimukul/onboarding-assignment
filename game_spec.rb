@@ -24,7 +24,7 @@ RSpec.describe Game::Game do
       end
       context "when an invalid player count is provided" do
         before do
-          allow($stdin).to receive(:gets).and_return("1\n", "3\n") # First invalid input, then valid input
+          allow($stdin).to receive(:gets).and_return("1\n", "3\n") # First invalid input (1, not allowed), then valid input
         end
 
         it "raises an ArgumentError and prompts again" do
