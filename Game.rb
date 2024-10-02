@@ -3,11 +3,14 @@ require "./dice.rb"
 
 module Game
   class Game
+    attr_reader :player_count
+
     def initialize(turns = 5)
       begin
         print "Enter the number of players: "
-        @player_count = Integer(gets.chomp)
-        raise ArgumentError if @player_count < 2
+        @player_count = $stdin.gets.chomp.to_i
+        puts @player_count
+        raise ArgumentError if @player_count == nil || @player_count < 2
       rescue ArgumentError
         puts "Please enter a valid Player count."
         retry
@@ -27,8 +30,6 @@ module Game
         puts "--------"
         @players.each do |player|
           player.reset_score_and_take_turn @dice_obj
-          player.accumulated_score += player.turn_score if player.game_started
-          @dice_obj.current_turn = @dice_obj.max_turns
           puts ""
         end
         if last_round
@@ -43,7 +44,7 @@ module Game
 
     def is_last_round?
       scores = @players.map { |player| player.accumulated_score }.select do |score|
-        score >= 300
+        score >= 3000
       end
       scores.length > 0
     end

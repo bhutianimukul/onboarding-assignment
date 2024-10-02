@@ -1,17 +1,17 @@
 module Dice
   class DiceSet
-    attr_reader :values, :max_turns
-    attr_accessor :current_turn
+    attr_reader :values, :max_throws
+    attr_accessor :current_throw
 
-    def initialize(turns = 5)
-      @max_turns = turns
-      @current_turn = turns
+    def initialize(throws = 5)
+      @max_throws = throws
+      @current_throw = throws
       @values = []
     end
 
     def roll()
       @values = []
-      @current_turn.times do |turn|
+      @current_throw.times do |throw|
         @values << 1 + rand(6)
       end
       compute_possible_rolls
@@ -36,7 +36,7 @@ module Dice
     def compute_possible_rolls
       scoring_dices = get_scoring_dices
       non_scoring_dices = @values.length - scoring_dices
-      @current_turn = non_scoring_dices.zero? ? @max_turns : non_scoring_dices
+      @current_throw = non_scoring_dices.zero? ? @max_throws : non_scoring_dices
     end
 
     def is_scoring_die?(die)
