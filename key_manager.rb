@@ -1,3 +1,4 @@
+# V1 Implementation with O(n) and no controller logic
 require "securerandom"
 
 module ApiKeysController
@@ -7,7 +8,7 @@ module ApiKeysController
     attr_reader :key_pool
 
     # time after which child thread should auto release blocked keys and remove expired keys
-    def initialize cleanup_time = 1
+    def initialize(cleanup_time = 1)
       @key_pool = Hash.new
       start_cleanup_thread cleanup_time
     end
@@ -68,7 +69,7 @@ module ApiKeysController
     # Helper Child thread that will auto release blocked keys and cleanup expired keys
     private
 
-    def start_cleanup_thread cleanup_time
+    def start_cleanup_thread(cleanup_time)
       Thread.new do
         loop do
           auto_release_blocked_keys
