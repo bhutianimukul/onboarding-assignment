@@ -91,21 +91,5 @@ module ApiKeysController
       end
     end
 
-    # obj = KeyManager.new
-    # obj.add_key_to_pool
-    # # obj.get_available_keys
-    # puts obj.key_pool
-    # obj.get_available_keys
-    # # obj.add_key_to_pool
-    # # obj.auto_release_blocked_keys
-    # # obj.cleanup_expired_keys
-    # puts obj.key_pool
-    # i =0
-    # while true
-    #   puts obj.key_pool
-    #   sleep 1
-    #   obj.get_available_keys if i ==5
-    #   i += 1
-    # end
   end
 end
