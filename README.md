@@ -9,4 +9,8 @@ Routes
 # POST "/key/unblock" => to unblock
 # Delete "/key/purge"
 # PUT "/key/refresh" => to keep alive key
+
+There are two files for controllers
+KeyManager : It contains O(n) implementation
+KeyManagerV2 : It contains O(log n) implementation 
 ruby main.rb
