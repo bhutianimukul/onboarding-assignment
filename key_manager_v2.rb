@@ -11,29 +11,27 @@ module ApiKeysControllerV2
     def initialize(cleanup_time = 1)
       @key_pool = Hash.new
       @available_keys = Set.new
-      @blocked_keys, @expiry_time = Containers::MinHeap.new { |a, b| a[1] <=> b[1] }, Containers::MinHeap.new { |a, b| a[1] <=> b[1] }
+      @blocked_keys, @expiry_time = Containers::MinHeap.new, Containers::MinHeap.new
       @blocked_keys_map, @expiry_time_map = Hash.new, Hash.new  ## To store the values, to delete from heap in O(log n)
       start_cleanup_thread cleanup_time #auto restore blocked and remove expired keys
     end
 
     # E1 : Generate a new Key
-    def add_key_to_pool(headers, body, key = SecureRandom.hex(16))
+    def add_key_to_pool(headers = Hash.new, body = Hash.new, key = SecureRandom.hex(16))
       expiry_time = Time.now + EXPIRY_TIME
       @key_pool[key] = expiry_time
       @available_keys.add(key)
-      elem = [key, expiry_time]
-      @expiry_time.push([key, expiry_time])
-      @expiry_time_map[key] = elem
-      [:ok, key]
+      map_element = [expiry_time, key]
+      @expiry_time.push(map_element)
+      @expiry_time_map[key] = map_element
+      [:ok, { key: key, expiry_time: expiry_time }]
     end
 
     # E2 : Get available_key and block key
-    def get_available_keys(headers, body)
+    def get_available_keys(headers = Hash.new, body = Hash.new)
       return [:not_found, "Unable to get any key from the key pool"] if @available_keys.empty? ## will handle 404
       key_to_be_blocked = @available_keys.first
-      puts " key #{key_to_be_blocked}"
       block_key key_to_be_blocked
-      [:ok, key_to_be_blocked]
     end
 
     private
@@ -42,15 +40,16 @@ module ApiKeysControllerV2
     def block_key(key)
       return [:not_found, "Unable to get any key from the available key"] unless @key_pool[key] && @available_keys.include?(key)
       @available_keys.delete(key)
-      elem = [key, Time.now]
-      @blocked_keys.push(elem)
-      @blocked_keys_map[key] = elem
+      map_element = [Time.now, key]
+      @blocked_keys.push(map_element)
+      @blocked_keys_map[key] = map_element
+      [:ok, ({ key: key_to_be_blocked, unblock_time: Time.now + ACCESSIBLE_TIME })]
     end
 
     public
 
     # E3 : unblock key
-    def unblock_key(headers, body)
+    def unblock_key(headers = Hash.new, body = Hash.new)
       return [:not_found, "Unable to get key to be blocked"] if body["key"].nil?
       key = body["key"]
       puts "Here unblocking #{key}"
@@ -62,7 +61,7 @@ module ApiKeysControllerV2
     end
 
     # E4 : Delete key
-    def purge_key(headers, body)
+    def purge_key(headers = Hash.new, body = Hash.new)
       return [:not_found, "Unable to get key to be blocked"] if body["key"].nil?
       key = body["key"]
       return [:not_found, "Key not found"] unless @key_pool[key]
@@ -72,7 +71,7 @@ module ApiKeysControllerV2
     end
 
     # E5 : cron which will be called every 5 min
-    def keep_alive_cron(headers, body)
+    def keep_alive_cron(headers = Hash.new, body = Hash.new)
       return [:not_found, "Unable to get key to be blocked"] if body["key"].nil?
       key = body["key"]
       puts "here refreshing #{key}"
@@ -80,13 +79,12 @@ module ApiKeysControllerV2
       # new expiry time, if the key is not refreshed yet
       if Time.now < @key_pool[key]
         @key_pool[key] = Time.now + EXPIRY_TIME
-        elem = [key, @key_pool[key]]
+        map_element = [key, @key_pool[key]]
         @expiry_time.delete(@expiry_time_map[key]) if @expiry_time_map[key] # delete if already exist
-        @expiry_time_map[key] = elem
-        @expiry_time.push(elem)
+        @expiry_time_map[key] = map_element
+        @expiry_time.push(map_element)
         [:ok, "SUCCESS"]
-      end
-      [:ok, "Key is Already refreshed"]
+      else [:ok, "Key is Already refreshed or expired"]       end
     end
 
     # Helper Child thread that will auto release blocked keys and cleanup expired keys
@@ -104,16 +102,20 @@ module ApiKeysControllerV2
     end
 
     def cleanup_expired_keys
-      while !@expiry_time.empty? && @expiry_time.next[1] <= Time.now
-        key = @expiry_time.pop[0]
-        purge_key({}, { "keys" => key })
+      time = Time.now
+      while !@expiry_time.empty? && @expiry_time.next[0] <= time
+        key = @expiry_time.next[1]
+        puts "Key found to be purge #{key}"
+        status, _ = purge_key({}, { "key" => key })
+        @expiry_time.pop if status == :ok
       end
     end
 
     def auto_release_blocked_keys
-      while !@blocked_keys.empty? && Time.now - @blocked_keys.next[1] > ACCESSIBLE_TIME
-        key = @blocked_keys.pop[0]
-        unblock_key({}, { "key" => key })
+      while !@blocked_keys.empty? && Time.now - @blocked_keys.next[0] > ACCESSIBLE_TIME
+        key = @blocked_keys.next[1]
+        status, _ = unblock_key({}, { "key" => key })
+        @blocked_keys.pop if status == :ok
       end
     end
 

@@ -2,6 +2,7 @@ require "socket"
 require "./key_manager_v2.rb"
 require "./routes.rb"
 require "json"
+require 'logger'
 
 module Server
   class KeyServer
@@ -9,15 +10,20 @@ module Server
       @server = TCPServer.new(port)
       @controller = ApiKeysControllerV2::KeyManagerV2.new
       @router = Routes::Router.new
-      puts "Server is running on port #{port}"
+      @logger = Logger.new(STDOUT)
+      @logger.info "Server is running on port #{port}"
     end
 
     def start
       loop do
         client = @server.accept
-        request = client.gets
-        # Thread.new { handle_client(client) }
-        method, path, headers, body = parse_request(request, client)
+        request_lines = []
+        while (line = client.gets) && !line.chomp.empty?
+          request_lines << line.chomp
+        end
+        next if request_lines.empty?
+        method, path, headers, body = parse_request(request_lines, client)
+        @logger.debug "Server Hit #{path} #{method}"
         action = @router.route(method, path)
         serve_content(action, client, headers, body)
         client.close
@@ -26,20 +32,27 @@ module Server
 
     private
 
-    def parse_request(request, client)
-      puts request
-      method, path = request.split(" ")
+    def parse_request(request_lines, client)
       headers = {}
-      while (line = client.gets) && !line.chomp.empty?
+      request_line = request_lines[0]
+      method, path, _ = request_line.split(" ", 3)
+
+      headers = {}
+
+      request_lines[1..-1].each do |line|
         key, value = line.split(": ", 2)
-        headers[key] = value
+        headers[key] = value.strip if key && value
       end
+
       body = ""
       if headers["Content-Length"]
         content_length = headers["Content-Length"].to_i
-        body = client.read(content_length)
+        body = client.read(content_length) if content_length > 0
       end
-      [method, path, headers, JSON.parse(body)]
+
+      parsed_body = body.empty? ? {} : JSON.parse(body) rescue {}
+
+      [method, path, headers, parsed_body]
     end
 
     def serve_content(action, client, headers, body)
@@ -47,16 +60,15 @@ module Server
         status, resp = @controller.send(action, headers, body)
         case status
         when :ok
-          send_response(client, 200, { response: resp })
+          send_response(client, 200, resp)
         when :not_found
           send_response(client, 404, { error: resp })
         when :server_error
           send_response(client, 500, { error: resp })
         end
-      rescue StandardError => e
-        puts "Error: #{e.message}"
+      rescue StandardError => _
         if action == :method_not_allowed
-          send_response(client, 404, "")
+          send_response(client, 404, "Not Found")
         else
           send_response(client, 500, { error: "Internal Server Error" })
         end
