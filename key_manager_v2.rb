@@ -5,7 +5,7 @@ module ApiKeysControllerV2
   class KeyManagerV2
     EXPIRY_TIME = 300
     ACCESSIBLE_TIME = 60
-    attr_reader :key_pool, :available_keys, :blocked_keys, :expiry_time
+    attr_reader :key_pool, :available_keys, :blocked_keys, :expiry_time, :blocked_keys_map, :expiry_time_map 
 
     # time after which child thread should auto release blocked keys and remove expired keys
     def initialize(cleanup_time = 1)
@@ -43,7 +43,7 @@ module ApiKeysControllerV2
       map_element = [Time.now, key]
       @blocked_keys.push(map_element)
       @blocked_keys_map[key] = map_element
-      [:ok, ({ key: key_to_be_blocked, unblock_time: Time.now + ACCESSIBLE_TIME })]
+      [:ok, ({ key: key, unblock_time: Time.now + ACCESSIBLE_TIME })]
     end
 
     public
@@ -52,7 +52,7 @@ module ApiKeysControllerV2
     def unblock_key(headers = Hash.new, body = Hash.new)
       return [:not_found, "Unable to get key to be blocked"] if body["key"].nil?
       key = body["key"]
-      puts "Here unblocking #{key}"
+      puts "Unblocking Key : #{key}"
       return [:not_found, "Key not found"] unless @key_pool[key]
       add_key_to_pool(headers, body, key)
       @blocked_keys.delete(@blocked_keys_map[key])
@@ -74,7 +74,7 @@ module ApiKeysControllerV2
     def keep_alive_cron(headers = Hash.new, body = Hash.new)
       return [:not_found, "Unable to get key to be blocked"] if body["key"].nil?
       key = body["key"]
-      puts "here refreshing #{key}"
+      puts "Refreshing Key : #{key}"
       return [:not_found, "Key not found"] unless @key_pool[key]
       # new expiry time, if the key is not refreshed yet
       if Time.now < @key_pool[key]
@@ -91,7 +91,6 @@ module ApiKeysControllerV2
     private
 
     def start_cleanup_thread(cleanup_time)
-      puts "Inside start cleanup"
       Thread.new do
         loop do
           auto_release_blocked_keys
@@ -105,7 +104,7 @@ module ApiKeysControllerV2
       time = Time.now
       while !@expiry_time.empty? && @expiry_time.next[0] <= time
         key = @expiry_time.next[1]
-        puts "Key found to be purge #{key}"
+        puts "Purging Key : #{key}"
         status, _ = purge_key({}, { "key" => key })
         @expiry_time.pop if status == :ok
       end
