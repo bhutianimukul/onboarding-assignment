@@ -8,16 +8,16 @@ const filename = "./log.txt";
 const queueStream = new PassThrough();
 
 const queue = new Queue();
-async function readLastNLines(n) {
-  const fstats = await fsP.stat(filename);
+async function readLastNLines(n, filePath) {
+  const fstats = await fsP.stat(filePath);
   const size = fstats.size;
 
-  const fileD = await fsP.open(filename);
+  const fileD = await fsP.open(filePath);
   const buf = Buffer.alloc(1);
   let count = 0;
   let offset = Math.max(0, size - 1);
   let val = "";
-  while (offset >= 0 && count <= 10) {
+  while (offset >= 0 && count <= n) {
     await fileD.read(buf, 0, 1, offset); // size - 1
     if (String(buf) === "\n") {
       count++;
@@ -34,7 +34,7 @@ async function readLastNLines(n) {
   const fileD = await fsP.open(filename);
   const prevStat = await fsP.stat(filename);
   let prevSize = prevStat.size;
-  const lastnLines = await readLastNLines(10);
+  const lastnLines = await readLastNLines(10, "./log.txt");
   pushToQueue(lastnLines);
   setInterval(async () => {
     const currStat = await fsP.stat(filename);
@@ -51,10 +51,10 @@ async function readLastNLines(n) {
   }, 1000);
 })();
 
-function pushToQueue(lines) {
+function pushToQueue(lines, n = 10) {
   const lastLines = lines.trim().split("\n");
   lastLines.forEach((element) => {
-    if (queue.size() >= 10) queue.dequeue();
+    if (queue.size() >= n) queue.dequeue();
     queue.enqueue(element);
   });
 }
@@ -66,4 +66,4 @@ function getLatestnLines() {
   queueStream.pipe(stream);
   return stream;
 }
-module.exports = { getLatestnLines };
+module.exports = { getLatestnLines, pushToQueue, readLastNLines, queue  };
