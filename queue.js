@@ -15,6 +15,4 @@ class Queue {
       return this.arr.join("\n");
     }
   }
-  
   module.exports = { Queue };
-  

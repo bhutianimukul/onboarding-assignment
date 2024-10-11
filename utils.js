@@ -4,6 +4,7 @@ const { Queue } = require("./queue");
 const { PassThrough } = require("stream");
 
 const filename = "./log.txt";
+const logLines = 10
 
 const queueStream = new PassThrough();
 
@@ -30,11 +31,11 @@ async function readLastNLines(n, filePath) {
   return val;
 }
 
-(async function regularUpdates() {
+(async function regularUpdates(n) {
   const fileD = await fsP.open(filename);
   const prevStat = await fsP.stat(filename);
   let prevSize = prevStat.size;
-  const lastnLines = await readLastNLines(10, "./log.txt");
+  const lastnLines = await readLastNLines(n, "./log.txt");
   pushToQueue(lastnLines);
   setInterval(async () => {
     const currStat = await fsP.stat(filename);
@@ -49,9 +50,9 @@ async function readLastNLines(n, filePath) {
       if (prevSize > currSize) console.log("ALERT, File has been appended");
     }
   }, 1000);
-})();
+})(logLines);
 
-function pushToQueue(lines, n = 10) {
+function pushToQueue(lines, n = logLines) {
   const lastLines = lines.trim().split("\n");
   lastLines.forEach((element) => {
     if (queue.size() >= n) queue.dequeue();
