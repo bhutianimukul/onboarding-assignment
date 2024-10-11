@@ -1,0 +1,36 @@
+<html>
+
+<head>
+    <script src="https://cdn.socket.io/4.7.5/socket.io.min.js"
+        integrity="sha384-2huaZvOR9iDzHqslqwpR87isEmrfxqyWOF7hr7BY6KG0+hVKLoEXMPUJw3ynWuhO"
+        crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io-stream/0.9.1/socket.io-stream.js"
+        integrity="sha512-CIsFvh6QCVJHM5XSBQFm7a3mCErndwx9AugcP+nf/YxUQVVWY14klqk+3IG/qNqDpHg5pYVcZWiMt9SeZTiQnw=="
+        crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+</head>
+
+<body>
+    <div id="logs"
+        style="height: 60vh; overflow-y: auto; border: 1px solid white; padding: 10px; box-sizing: border-box; background-color: #36454F; color: white; font-size: 26px; letter-spacing: 1px;">
+    </div>
+    <script>
+        const socket = io("ws://localhost:3000");
+        const logDiv = document.getElementById("logs");
+
+        try {
+
+            ss(socket).on("log", (strm) => {
+                strm.on("data", (val) => {
+                    const data = String(val).trim();
+                    const newLogEntry = document.createElement("div");
+                    newLogEntry.innerText = data;
+                    logDiv.appendChild(newLogEntry);
+                });
+            });
+        } catch (err) {
+            console.log(err);
+            alert(err);
+        }
+    </script>
+
+</html>
